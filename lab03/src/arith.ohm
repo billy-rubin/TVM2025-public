@@ -1,3 +1,14 @@
 Arithmetic {
-    // write rules here
+  Exp      = AddExp
+  AddExp   = MulExp (("+" | "-") MulExp)*
+  MulExp   = PriExp (("*" | "/") PriExp)*
+
+  PriExp   = "-" PriExp        -- neg
+           | "(" Exp ")"       -- paren
+           | number            -- num
+           | variable          -- var
+
+  number   = digit+
+  variable = letter (letter | digit)*
+
 }
