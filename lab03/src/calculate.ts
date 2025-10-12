@@ -4,77 +4,59 @@ import grammar, { ArithmeticActionDict, ArithmeticSemantics } from "./arith.ohm-
 export const arithSemantics: ArithSemantics = grammar.createSemantics() as ArithSemantics;
 
 const arithCalc = {
-  // Exp = AddExp
-  Exp(addExpNode: any) {
-    const params = (this.args && this.args.params) ? this.args.params : {};
-    return addExpNode.calculate(params);
+  Exp(addExp: any) {
+    return addExp.calculate(this.args.params);
   },
 
-  // AddExp = MulExp (("+" | "-") MulExp)*
-  AddExp(first: any, rest: any) {
-    const params = (this.args && this.args.params) ? this.args.params : {};
-    let acc = first.calculate(params);
-    for (const it of rest.children) {
-      const op = it.children[0].sourceString;
-      const right = it.children[1].calculate(params);
-      if (op === "+") 
-        acc = acc + right;
-      else 
-        acc = acc - right;
+  AddExp(first: any, ops: any, rest: any) {
+    let res = first.calculate(this.args.params);
+    const n = ops.children.length;
+    for (let i = 0; i < n; i++) {
+      const op = ops.child(i).sourceString;
+      const r = rest.child(i).calculate(this.args.params);
+      res = op === "+" ? res + r : res - r;
     }
-    return acc;
+    return res;
   },
 
-  // MulExp = PriExp (("*" | "/") PriExp)*
-  MulExp(first: any, rest: any) {
-    const params = (this.args && this.args.params) ? this.args.params : {};
-    let acc = first.calculate(params);
-    for (const it of rest.children) {
-      const op = it.children[0].sourceString;
-      const right = it.children[1].calculate(params);
-      if (op === "*") {
-        acc = acc * right;
-      } else {
-        if (right === 0) 
+  MulExp(first: any, ops: any, rest: any) {
+    let res = first.calculate(this.args.params);
+    const n = ops.children.length;
+    for (let i = 0; i < n; i++) {
+      const op = ops.child(i).sourceString;
+      const r = rest.child(i).calculate(this.args.params);
+      if (op === "*") 
+        res *= r;
+      else {
+        if (r === 0) 
             throw new Error("Division by zero");
-        acc = acc / right;
+        res /= r;
       }
     }
-    return acc;
+    return res;
   },
 
+  PriExp_neg(_minus: any, e: any) {
+    return -e.calculate(this.args.params);
+  },
 
-  PriExp_neg(_dash: any, expr: any) {
+  PriExp_paren(_open: any, e: any, _close: any) {
+    return e.calculate(this.args.params);
+  },
+
+  PriExp_num(n: any) {
+    return parseInt(n.sourceString, 10);
+  },
+
+  PriExp_var(v: any) {
     const params = (this.args && this.args.params) ? this.args.params : {};
-    return -expr.calculate(params);
-  },
-
-  PriExp_paren(_l: any, inner: any, _r: any) {
-    const params = (this.args && this.args.params) ? this.args.params : {};
-    return inner.calculate(params);
-  },
-
-  PriExp_num(numNode: any) {
-    // numNode — узел лексического правила number (digit+)
-    // берем исходную подстроку и парсим как целое
-    return parseInt(numNode.sourceString, 10);
-  },
-
-  PriExp_var(varNode: any) {
-    const params = (this.args && this.args.params) ? this.args.params : {};
-    const name = varNode.sourceString;
-    if (!(name in params)) {
-      throw new Error(`Undefined variable: ${name}`);
-    }
-    return params[name];
+    const name = v.sourceString;
+    return (name in params) ? params[name] : NaN;
   }
-} as any; // приводим к any, чтобы не зависеть от точного auto-generated интерфейса
+} as any;
 
-// Регистрируем операцию calculate(params)
 arithSemantics.addOperation<number>("calculate(params)", arithCalc);
 
-
-// Типы, чтобы удобнее было пользоваться семантикой в проекте
 export interface ArithActions {
   calculate(params: { [name: string]: number }): number;
 }

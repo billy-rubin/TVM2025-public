@@ -1,8 +1,9 @@
 Arithmetic {
   Exp      = AddExp
+
   AddExp   = MulExp (("+" | "-") MulExp)*
   MulExp   = PriExp (("*" | "/") PriExp)*
-
+  
   PriExp   = "-" PriExp        -- neg
            | "(" Exp ")"       -- paren
            | number            -- num
