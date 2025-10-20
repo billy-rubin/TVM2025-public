@@ -14,7 +14,10 @@ const arithCalc = {
     for (let i = 0; i < n; i++) {
       const op = ops.child(i).sourceString;
       const r = rest.child(i).calculate(this.args.params);
-      res = op === "+" ? res + r : res - r;
+      if (op === "+")
+        res += r
+      else 
+        res -= r
     }
     return res;
   },
